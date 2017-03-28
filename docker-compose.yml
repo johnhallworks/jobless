@@ -1,0 +1,18 @@
+version: "2"
+services:
+  cassandra:
+    image: cassandra
+  redis:
+    image: redis
+  web:
+    image: python3-flask
+    depends_on:
+      - redis
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/opt/jobless
+    command: /bin/ash -c "pip install -e /opt/jobless && flask run --host=0.0.0.0"
+    environment:
+      - FLASK_APP=jobless.web.api
+      - FLASK_DEBUG=1
