@@ -9,7 +9,8 @@ setup(
     author='Michael Nelson',
     author_email='michaeldnelson.mdn@gmail.com',
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
-    install_requires=['cassandra-driver', 'Flask', 'celery[redis]'],
+    install_requires=['cassandra-driver', 'Flask', 'celery[redis]',
+                      'redlock-py', 'sqlalchemy', 'pymysql', 'python-dateutil'],
     entry_points={
         'celery.beat_schedulers': [
             'run_once = jobless.schedulers:RunOnceScheduler',

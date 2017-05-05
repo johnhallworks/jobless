@@ -4,12 +4,20 @@ services:
     image: cassandra
   redis:
     image: redis
+  mysql:
+    image: mysql:5.6.26
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=jobless
+    ports:
+      - "6785:3306"
   web:
-    image: python3-flask
+    image: python:3.5-alpine
     depends_on:
+      - mysql
       - redis
     ports:
-      - "5000:5000"
+      - "5453:5453"
     volumes:
       - .:/opt/jobless
     command: /bin/ash -c "pip install -e /opt/jobless && flask run --host=0.0.0.0"
