@@ -5,6 +5,7 @@ from sqlalchemy import (Column,
                         Integer,
                         String,
                         DateTime,
+                        Text,
                         create_engine)
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
@@ -23,11 +24,12 @@ class CompletedJobOrm(Base):
     schedule = Column(String(100))
     status = Column(String(100))
     command = Column(String(100))
-    args = Column(String(100))
-    on_success = Column(String(100))
-    on_failure = Column(String(100))
+    args = Column(Text)
+    on_success = Column(Text)
+    on_failure = Column(Text)
+
     success = Column(Boolean)
-    result = Column(String(1000))
+    result = Column(Text)
     processed_time = Column(DateTime)
 
     def __repr__(self):
@@ -51,13 +53,20 @@ class CompletedJobOrm(Base):
 
 class MysqlJobsLog(JobsLog):
     def __init__(self, uri, max_fetch_size=100):
-        self.engine = create_engine(uri)
-        self.Session = sessionmaker(bind=self.engine)
+        self.session_maker = self._create_session_maker(uri)
         self.max_fetch_size = max_fetch_size
+
+    def save(self, session, completed_job: CompletedJob):
+        completed_job_orm = CompletedJobOrm(**completed_job.to_dict())
+        session.add(completed_job_orm)
+
+    @staticmethod
+    def _create_session_maker(uri):
+        return sessionmaker(bind=create_engine(uri))
 
     @contextmanager
     def session_scope(self):
-        session = self.Session()
+        session = self.session_maker()
         try:
             yield session
             session.commit()

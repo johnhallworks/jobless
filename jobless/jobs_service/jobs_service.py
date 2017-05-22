@@ -6,7 +6,9 @@ from jobless.jobs_service.locks.base import Lock
 
 
 class JobsService(object):
+    """A service to control the jobs repo and locking service."""
     def __init__(self, jobs_repo: JobsRepo, lock_service: Lock, window=None):
+        """Initializes dependencies and window."""
         if window is None:
             window = timedelta(minutes=1)
         self.window = window

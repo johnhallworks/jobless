@@ -26,7 +26,7 @@ class JobOrm(Base):
     schedule = Column(String(100))
     status = Column(String(100))
     command = Column(String(100))
-    args = Column(String(100))
+    args = Column(Text)
     on_success = Column(Text)
     on_failure = Column(Text)
 
@@ -48,8 +48,7 @@ class JobOrm(Base):
 
 class MysqlJobsRepo(JobsRepo):
     def __init__(self, uri, max_fetch_size=100):
-        self.engine = create_engine(uri)
-        self.Session = sessionmaker(bind=self.engine)
+        self.session_maker = self._create_session_maker(uri)
         self.max_fetch_size = max_fetch_size
 
     def get(self, session, window: timedelta) -> List[Job]:
@@ -74,9 +73,13 @@ class MysqlJobsRepo(JobsRepo):
         job_orm = session.query(JobOrm).filter(JobOrm.id == job.id).first()
         session.delete(job_orm)
 
+    @staticmethod
+    def _create_session_maker(uri):
+        return sessionmaker(bind=create_engine(uri))
+
     @contextmanager
     def session_scope(self):
-        session = self.Session()
+        session = self.session_maker()
         try:
             yield session
             session.commit()
