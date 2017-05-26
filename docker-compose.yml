@@ -22,5 +22,5 @@ services:
       - .:/opt/jobless
     command: /bin/ash -c "pip install -e /opt/jobless && flask run --host=0.0.0.0"
     environment:
-      - FLASK_APP=jobless.web.api
+      - FLASK_APP=jobless.web.app
       - FLASK_DEBUG=1

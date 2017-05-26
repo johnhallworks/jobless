@@ -2,16 +2,19 @@ import json
 from datetime import timedelta
 
 from dateutil.parser import parse as date_parse
-from flask import (Flask,
-                   request,
+from flask import (request,
                    jsonify,
-                   Response)
+                   Response,
+                   Blueprint)
 
 from jobless.brokers import load_jobs_repo
 from jobless.models.job import Job, Status
 from jobless.jobs_service.jobs_repos.exceptions import JobNotFoundException
 
-app = Flask(__name__)
+
+jobs_blueprint = Blueprint('jobs', 'jobs')
+
+
 jobs_repo = load_jobs_repo()
 
 
@@ -28,12 +31,7 @@ def body_to_job(job_json):
     return job
 
 
-@app.route('/')
-def hello_world():
-    return 'Hello, World!'
-
-
-@app.route('/jobs', methods=['POST'])
+@jobs_blueprint.route('', methods=['POST'])
 def create_job():
     try:
         job_json = request.get_json(silent=True)
@@ -43,7 +41,7 @@ def create_job():
         return Response(status=201)
     except Exception as ex:
         print(ex)
-        return app.response_class(
+        return jobs_blueprint.response_class(
             response=json.dumps({
                 "error": str(ex)
             }),
@@ -52,7 +50,7 @@ def create_job():
         )
 
 
-@app.route('/jobs/<job_id>', methods=['GET'])
+@jobs_blueprint.route('/<job_id>', methods=['GET'])
 def retrieve_job(job_id):
     try:
         with jobs_repo.session_scope() as session:
@@ -60,7 +58,7 @@ def retrieve_job(job_id):
             if job:
                 return jsonify(job.to_dict())
     except JobNotFoundException as ex:
-        return app.response_class(
+        return jobs_blueprint.response_class(
             response=json.dumps({
                 "error": str(ex)
             }),
@@ -69,7 +67,7 @@ def retrieve_job(job_id):
         )
 
 
-@app.route('/jobs', methods=['GET'])
+@jobs_blueprint.route('', methods=['GET'])
 def retrieve_jobs():
     try:
         days = request.args.get('days', 0)
@@ -83,7 +81,7 @@ def retrieve_jobs():
             jobs = [job.to_dict() for job in jobs]
             return jsonify(jobs)
     except Exception as ex:
-        return app.response_class(
+        return jobs_blueprint.response_class(
             response=json.dumps({
                 "error": str(ex)
             }),
@@ -92,7 +90,7 @@ def retrieve_jobs():
         )
 
 
-@app.route('/jobs/<job_id>', methods=['PUT'])
+@jobs_blueprint.route('/<job_id>', methods=['PUT'])
 def update_job(job_id):
     try:
         job_json = request.get_json(silent=True)
@@ -106,7 +104,7 @@ def update_job(job_id):
         return Response(status=400)
 
 
-@app.route('/jobs/<job_id>', methods=['DELETE'])
+@jobs_blueprint.route('/<job_id>', methods=['DELETE'])
 def delete_job(job_id):
     try:
         with jobs_repo.session_scope() as session:
