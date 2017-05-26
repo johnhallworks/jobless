@@ -21,7 +21,7 @@ class Scheduler:
         self.jobs_service = jobs_service
         self.original_sigint_handler = signal.getsignal(signal.SIGINT)
 
-        signal.signal(signal.SIGINT, self.stop_sig_handler)
+        signal.signal(signal.SIGINT, self._stop_sig_handler)
 
     def start(self):
         """Starts job processing."""
@@ -37,7 +37,7 @@ class Scheduler:
         """Stops job processing."""
         self._started = False
 
-    def stop_sig_handler(self, *args):
+    def _stop_sig_handler(self, *args):
         """Signal handler to gracefully stop scheduler."""
         self.stop()
         print("Attempting to stop scheduler gracefully")
@@ -57,12 +57,12 @@ class Scheduler:
             seconds_until_due = (job.time_to_process - datetime.now()).total_seconds()
 
             if seconds_until_due <= 0:
-                self.process_job(job)
+                self._process_job(job)
             else:
                 heapq.heappush(jobs_heap, job)
                 time.sleep(seconds_until_due)
 
-    def process_job(self, job: Job) -> None:
+    def _process_job(self, job: Job) -> None:
         """processes a ready job."""
         print("PROCESSING JOB")
         chain(

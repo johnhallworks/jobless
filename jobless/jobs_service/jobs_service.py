@@ -19,7 +19,7 @@ class JobsService(object):
         """Returns a list of jobs to process."""
         with self.lock_service.lock_scope():
             with self.jobs_repo.session_scope() as session:
-                jobs = self.jobs_repo.get(session, self.window)
+                jobs = self.jobs_repo.get_window(session, self.window)
                 for job in jobs:
                     self._set_dispatched(session, job)
         return jobs
@@ -37,7 +37,7 @@ class JobsService(object):
                 self._apply_schedule(new_job)
                 self.jobs_repo.update(session, new_job)
             else:
-                self.jobs_repo.delete(session, new_job)
+                self.jobs_repo.delete(session, new_job.id)
 
     def _set_dispatched(self, session, job: Job):
         """Updates a job status to DISPATCHED."""

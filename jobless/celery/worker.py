@@ -55,9 +55,9 @@ def handle_side_effects(self, completed_job: CompletedJob) -> None:
     side_effect_job = None
     if completed_job.success:
         if completed_job.on_success is not None:
-            side_effect_job = Job(**completed_job.on_success)
+            side_effect_job = completed_job.on_success
     elif completed_job.on_failure:
-        side_effect_job = Job(**completed_job.on_failure)
+        side_effect_job = completed_job.on_failure
 
     if side_effect_job is not None:
         side_effect_job.args.update({'success': completed_job.success, 'result': completed_job.result})

@@ -1,3 +1,4 @@
+import json
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import List
@@ -14,9 +15,39 @@ from sqlalchemy.orm import sessionmaker
 
 from jobless.models.job import Job, Status
 from jobless.jobs_service.jobs_repos.base import JobsRepo
+from jobless.jobs_service.jobs_repos.exceptions import JobNotFoundException
 
 
 Base = declarative_base()
+
+
+def job_to_orm(job):
+    orm_dict = job.to_dict()
+    if orm_dict['schedule'] is not None:
+        orm_dict['schedule'] = json.dumps(orm_dict['schedule'])
+    if orm_dict['args'] is not None:
+        orm_dict['args'] = json.dumps(orm_dict['args'])
+    if orm_dict['on_success'] is not None:
+        orm_dict['on_success'] = json.dumps(orm_dict['on_success'])
+    if orm_dict['on_failure'] is not None:
+        orm_dict['on_failure'] = json.dumps(orm_dict['on_failure'])
+
+    return JobOrm(**orm_dict)
+
+
+def orm_to_job(job_orm):
+    orm_dict = job_orm.to_dict()
+    # convert text-json fields to dictionaries
+    if orm_dict['schedule'] is not None:
+        orm_dict['schedule'] = json.loads(orm_dict['schedule'])
+    if orm_dict['args'] is not None:
+        orm_dict['args'] = json.loads(orm_dict['args'])
+    if orm_dict['on_success'] is not None:
+        orm_dict['on_success'] = json.loads(orm_dict['on_success'])
+    if orm_dict['on_failure'] is not None:
+        orm_dict['on_failure'] = json.loads(orm_dict['on_failure'])
+
+    return Job(**orm_dict)
 
 
 class JobOrm(Base):
@@ -51,26 +82,34 @@ class MysqlJobsRepo(JobsRepo):
         self.session_maker = self._create_session_maker(uri)
         self.max_fetch_size = max_fetch_size
 
-    def get(self, session, window: timedelta) -> List[Job]:
+    def get_job(self, session, job_id: str) -> Job:
+        job_orm = session.query(JobOrm).filter(JobOrm.id == job_id).first()
+        if job_orm is None:
+            raise JobNotFoundException("Could not find job with id: {0}"
+                                       .format(job_id))
+        return orm_to_job(job_orm)
+
+    def get_window(self, session, window: timedelta) -> List[Job]:
         jobs_due_before = datetime.now() + window
         jobs_orm = session.query(JobOrm)\
             .filter(JobOrm.time_to_process <= jobs_due_before)\
             .filter(JobOrm.status == Status.READY.value) \
             .order_by(JobOrm.time_to_process.asc()) \
             .limit(self.max_fetch_size).all()
-        return [Job(**job.to_dict()) for job in jobs_orm]
+        return [orm_to_job(job_orm) for job_orm in jobs_orm]
 
     def insert(self, session, job: Job) -> None:
-        job_orm = JobOrm(**job.to_dict())
+        job_orm = job_to_orm(job)
         session.add(job_orm)
 
     def update(self, session, job: Job) -> None:
         job_orm = session.query(JobOrm).filter(JobOrm.id == job.id).first()
-        for prop, val in job.to_dict().items():
+        updated_job_dict = job_to_orm(job).to_dict()
+        for prop, val in updated_job_dict.items():
             setattr(job_orm, prop, val)
 
-    def delete(self, session, job: Job) -> None:
-        job_orm = session.query(JobOrm).filter(JobOrm.id == job.id).first()
+    def delete(self, session, job_id: str) -> None:
+        job_orm = session.query(JobOrm).filter(JobOrm.id == job_id).first()
         session.delete(job_orm)
 
     @staticmethod

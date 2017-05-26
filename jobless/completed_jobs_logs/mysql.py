@@ -1,3 +1,4 @@
+import json
 from contextlib import contextmanager
 
 from sqlalchemy import (Column,
@@ -15,6 +16,35 @@ from jobless.completed_jobs_logs.base import JobsLog
 
 
 Base = declarative_base()
+
+
+def completed_job_to_orm(completed_job):
+    orm_dict = completed_job.to_dict()
+    if orm_dict['schedule'] is not None:
+        orm_dict['schedule'] = json.dumps(orm_dict['schedule'])
+    if orm_dict['args'] is not None:
+        orm_dict['args'] = json.dumps(orm_dict['args'])
+    if orm_dict['on_success'] is not None:
+        orm_dict['on_success'] = json.dumps(orm_dict['on_success'])
+    if orm_dict['on_failure'] is not None:
+        orm_dict['on_failure'] = json.dumps(orm_dict['on_failure'])
+
+    return CompletedJobOrm(**orm_dict)
+
+
+def orm_to_completed_job(completed_job_orm):
+    orm_dict = completed_job_orm.to_dict()
+    # convert text-json fields to dictionaries
+    if orm_dict['schedule'] is not None:
+        orm_dict['schedule'] = json.loads(orm_dict['schedule'])
+    if orm_dict['args'] is not None:
+        orm_dict['args'] = json.loads(orm_dict['args'])
+    if orm_dict['on_success'] is not None:
+        orm_dict['on_success'] = json.loads(orm_dict['on_success'])
+    if orm_dict['on_failure'] is not None:
+        orm_dict['on_failure'] = json.loads(orm_dict['on_failure'])
+
+    return CompletedJob(**orm_dict)
 
 
 class CompletedJobOrm(Base):
@@ -57,8 +87,7 @@ class MysqlJobsLog(JobsLog):
         self.max_fetch_size = max_fetch_size
 
     def save(self, session, completed_job: CompletedJob):
-        completed_job_orm = CompletedJobOrm(**completed_job.to_dict())
-        session.add(completed_job_orm)
+        session.add(completed_job_to_orm(completed_job))
 
     @staticmethod
     def _create_session_maker(uri):
