@@ -7,7 +7,7 @@ from jobless.jobs_service.jobs_repos.base import JobsRepo
 from jobless.jobs_service.jobs_repos.mysql import MysqlJobsRepo
 from jobless.jobs_service.jobs_service import JobsService
 from jobless.jobs_service.locks.base import Lock
-from jobless.jobs_service.locks.redlock_service import RedlockJobsLock
+from jobless.jobs_service.locks.redlock import RedlockJobsLock
 
 
 def load_jobs_repo() -> JobsRepo:

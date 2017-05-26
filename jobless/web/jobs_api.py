@@ -1,7 +1,6 @@
 import json
 from datetime import timedelta
 
-from dateutil.parser import parse as date_parse
 from flask import (request,
                    jsonify,
                    Response,
