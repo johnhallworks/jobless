@@ -1,0 +1,239 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "Job Scheduler",
+    "version": "1.0.0",
+    "title": "Job Scheduler"
+  },
+  "host": "localhost:5453",
+  "tags": [
+    {
+      "name": "Jobs",
+      "description": "CRUD Job scheduling"
+    }
+  ],
+  "schemes": [
+    "http"
+  ],
+  "paths": {
+    "/jobs": {
+      "get": {
+        "tags": ["Jobs"],
+        "summary": "Get a window of jobs from the scheduler",
+        "description": "",
+        "operationId": "getJobWindow",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "seconds",
+            "description": "Get jobs that are seconds in the future from now",
+            "type": "integer"
+          },
+          {
+            "in": "query",
+            "name": "minutes",
+            "description": "Get jobs that are minutes in the future from now",
+            "type": "integer"
+          },
+          {
+            "in": "query",
+            "name": "hours",
+            "description": "Get jobs that are hours in the future from now",
+            "type": "integer"
+          },
+          {
+            "in": "query",
+            "name": "days",
+            "description": "Get jobs that are days in the future from now",
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid Request"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Jobs"],
+        "summary": "Add a new job to the schedule",
+        "description": "",
+        "operationId": "addJob",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Job object that needs to be added to the schedule",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Job"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid Request"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Jobs"],
+        "summary": "Update an existing job",
+        "description": "",
+        "operationId": "updateJob",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Job object that needs to be updated in the schedule",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Job"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Job not found"
+          }
+        }
+      }
+    },
+    "/jobs/{jobId}": {
+      "get": {
+        "tags": ["Jobs"],
+        "summary": "Find Job by ID",
+        "description": "Returns a single job",
+        "operationId": "getJobById",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "description": "ID of job to return",
+            "required": true,
+            "type": "string",
+            "format": "uuid4"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/Job"
+            }
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Job not found"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Jobs"],
+        "summary": "Deletes a Job",
+        "description": "",
+        "operationId": "deleteJob",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "description": "Job id to delete",
+            "required": true,
+            "type": "string",
+            "format": "uuid4"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "deleted"
+          },
+          "400": {
+            "description": "Invalid Request"
+          },
+          "404": {
+            "description": "Job not found"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Job": {
+      "type": "object",
+      "required": [
+        "time_to_process",
+        "status",
+        "command"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid4"
+        },
+        "time_to_process": {
+          "type": "string",
+          "format": "datetime"
+        },
+        "command": {
+          "type": "string",
+          "enum": [
+            "http_request"
+          ]
+        },
+        "args": {
+          "type": "object",
+          "description": "arguments for the command"
+        },
+        "status": {
+          "type": "string",
+          "description": "Job status in the schedule",
+          "enum": [
+            "READY",
+            "DISPATCHED"
+          ]
+        },
+        "schedule": {
+          "type": "object",
+          "description": "timedelta",
+          "example": {"seconds": 30, "minutes": 20, "days": 10},
+        },
+        "on_success": {
+          "type": "object",
+          "$ref": "#/definitions/Job",
+          "description": "Job to execute on success (recursive)"
+        },
+        "on_failure": {
+          "type": "object",
+          "$ref": "#/definitions/Job",
+          "description": "Job to execute on failure (recursive)"
+        }
+      }
+    }
+  }
+}
