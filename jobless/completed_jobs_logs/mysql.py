@@ -20,6 +20,8 @@ Base = declarative_base()
 
 def completed_job_to_orm(completed_job):
     orm_dict = completed_job.to_dict()
+    orm_dict['time_to_process'] = completed_job.time_to_process
+    orm_dict['processed_time'] = completed_job.processed_time
     if orm_dict['schedule'] is not None:
         orm_dict['schedule'] = json.dumps(orm_dict['schedule'])
     if orm_dict['args'] is not None:

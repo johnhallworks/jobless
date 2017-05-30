@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import List
 
+from dateutil.parser import parse as date_parse
 from sqlalchemy import (Column,
                         Boolean,
                         Integer,
@@ -21,8 +22,9 @@ from jobless.jobs_service.jobs_repos.exceptions import JobNotFoundException
 Base = declarative_base()
 
 
-def job_to_orm(job):
+def _job_to_orm(job):
     orm_dict = job.to_dict()
+    orm_dict['time_to_process'] = job.time_to_process
     if orm_dict['schedule'] is not None:
         orm_dict['schedule'] = json.dumps(orm_dict['schedule'])
     if orm_dict['args'] is not None:
@@ -35,7 +37,7 @@ def job_to_orm(job):
     return JobOrm(**orm_dict)
 
 
-def orm_to_job(job_orm):
+def _orm_to_job(job_orm):
     orm_dict = job_orm.to_dict()
     # convert text-json fields to dictionaries
     if orm_dict['schedule'] is not None:
@@ -87,7 +89,7 @@ class MysqlJobsRepo(JobsRepo):
         if job_orm is None:
             raise JobNotFoundException("Could not find job with id: {0}"
                                        .format(job_id))
-        return orm_to_job(job_orm)
+        return _orm_to_job(job_orm)
 
     def get_window(self, session, window: timedelta) -> List[Job]:
         jobs_due_before = datetime.now() + window
@@ -96,15 +98,15 @@ class MysqlJobsRepo(JobsRepo):
             .filter(JobOrm.status == Status.READY.value) \
             .order_by(JobOrm.time_to_process.asc()) \
             .limit(self.max_fetch_size).all()
-        return [orm_to_job(job_orm) for job_orm in jobs_orm]
+        return [_orm_to_job(job_orm) for job_orm in jobs_orm]
 
     def insert(self, session, job: Job) -> None:
-        job_orm = job_to_orm(job)
+        job_orm = _job_to_orm(job)
         session.add(job_orm)
 
     def update(self, session, job: Job) -> None:
         job_orm = session.query(JobOrm).filter(JobOrm.id == job.id).first()
-        updated_job_dict = job_to_orm(job).to_dict()
+        updated_job_dict = _job_to_orm(job).to_dict()
         for prop, val in updated_job_dict.items():
             setattr(job_orm, prop, val)
 
