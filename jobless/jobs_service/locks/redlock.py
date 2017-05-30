@@ -10,14 +10,18 @@ class RedlockJobsLock(Lock):
     LOCK_NAME = "jobs_lock"
 
     def __init__(self, hosts, validity_time_seconds=10):
-        self.dlm = Redlock(hosts)
+        self.dlm = self._redlock(hosts)
         self.validity_time = validity_time_seconds*1000
+
+    @staticmethod
+    def _redlock(hosts):
+        return Redlock(hosts)
 
     def _attempt_lock(self):
         return self.dlm.lock(self.LOCK_NAME, self.validity_time)
 
     def lock(self, block=True):
-        lock = False
+        """Keep trying to obtain a lock every second for twice the validity time."""
         max_attempts = (self.validity_time / 1000) * 2
         attempts = 1
         lock = self._attempt_lock()
@@ -25,10 +29,11 @@ class RedlockJobsLock(Lock):
         while lock is False and block:
             lock = self._attempt_lock()
             if lock is False:
-                sleep(1)
-                attempts += 1
                 if attempts == max_attempts:
                     raise LockException("Lock was not released in time")
+                else:
+                    sleep(1)
+                attempts += 1
         return lock
 
     def unlock(self, lock):
