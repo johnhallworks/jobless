@@ -1,5 +1,6 @@
 import json
 from contextlib import contextmanager
+from typing import List
 
 from sqlalchemy import (Column,
                         Boolean,
@@ -14,11 +15,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from jobless.models.job import CompletedJob
 from jobless.completed_jobs_logs.base import JobsLog
 
-
 Base = declarative_base()
 
 
-def completed_job_to_orm(completed_job):
+def _completed_job_to_orm(completed_job):
     orm_dict = completed_job.to_dict()
     orm_dict['time_to_process'] = completed_job.time_to_process
     orm_dict['processed_time'] = completed_job.processed_time
@@ -34,7 +34,7 @@ def completed_job_to_orm(completed_job):
     return CompletedJobOrm(**orm_dict)
 
 
-def orm_to_completed_job(completed_job_orm):
+def _orm_to_completed_job(completed_job_orm):
     orm_dict = completed_job_orm.to_dict()
     # convert text-json fields to dictionaries
     if orm_dict['schedule'] is not None:
@@ -52,6 +52,7 @@ def orm_to_completed_job(completed_job_orm):
 class CompletedJobOrm(Base):
     __tablename__ = 'completed_jobs'
     id = Column(String(100), primary_key=True)
+    job_id = Column(String(100), nullable=False)
     time_to_process = Column(DateTime)
     schedule = Column(String(100))
     status = Column(String(100))
@@ -70,6 +71,7 @@ class CompletedJobOrm(Base):
     def to_dict(self):
         return {
             'id': self.id,
+            'job_id': self.job_id,
             'time_to_process': self.time_to_process,
             'schedule': self.schedule,
             'status': self.status,
@@ -89,7 +91,16 @@ class MysqlJobsLog(JobsLog):
         self.max_fetch_size = max_fetch_size
 
     def save(self, session, completed_job: CompletedJob):
-        session.add(completed_job_to_orm(completed_job))
+        session.add(_completed_job_to_orm(completed_job))
+
+    def get_completed_jobs(self, session, job_id, limit=10, offset=0)->List[CompletedJob]:
+        completed_jobs_orm = session.query(CompletedJobOrm)\
+            .filter(CompletedJobOrm.job_id == job_id)\
+            .limit(self.max_fetch_size) \
+            .offset(offset).all()\
+
+        return [_orm_to_completed_job(completed_job_orm)
+                for completed_job_orm in completed_jobs_orm]
 
     @staticmethod
     def _create_session_maker(uri):

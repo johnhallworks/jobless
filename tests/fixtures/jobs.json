@@ -58,19 +58,7 @@
         "time_to_process": "2017-05-26 17:24:08.350482"
     },
     {
-        "on_failure": null,
-        "command": "http_request",
-        "id": "b415f231-938d-422a-8f30-8608474e1b00",
-        "args": {
-            "params": {
-                "n": 1,
-                "start": "1493648905",
-                "sectionId": "54be429fe4b03c5abe892b70"
-            },
-            "url": "http://content.huffingtonpost.com/v2/contenthub/entries",
-            "method": "get"
-        },
-        "on_success": {
+        "on_failure": {
             "on_failure": null,
             "command": "http_request",
             "id": "b415f231-938d-422a-8f30-8608474e1b00 asdf",
@@ -109,6 +97,18 @@
             "status": "READY",
             "time_to_process": "2017-05-26 17:24:17.351691"
         },
+        "command": "http_request",
+        "id": "b415f231-938d-422a-8f30-8608474e1b00",
+        "args": {
+            "params": {
+                "n": 1,
+                "start": "1493648905",
+                "sectionId": "54be429fe4b03c5abe892b70"
+            },
+            "url": "http://content.huffingtonpost.com/v2/contenthub/entries",
+            "method": "get"
+        },
+        "on_success": null,
         "schedule": {
             "seconds": 30
         },

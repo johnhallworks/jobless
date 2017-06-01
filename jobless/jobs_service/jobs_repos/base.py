@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from contextlib import contextmanager
-from datetime import timedelta
-from enum import Enum
+from datetime import datetime, timedelta
 from typing import List
 
 from jobless.models.job import Job
@@ -39,3 +38,9 @@ class JobsRepo:
     def session_scope(self):
         """Provide a transactional scope around a series of operations."""
         pass
+
+    @staticmethod
+    def adjust_time_to_process(job: Job):
+        """Adjusts ttp in the past to now."""
+        if job.time_to_process < datetime.now():
+            job.time_to_process = datetime.now()

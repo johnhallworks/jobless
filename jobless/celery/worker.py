@@ -15,7 +15,10 @@ app.config_from_object('jobless.celery.celeryconfig')
 def execute_job_command(job: Job) -> CompletedJob:
     """Executes the command of a job."""
     success, result = command_registry[job.command](**job.args)
-    return CompletedJob(success, result, datetime.now(), **job.to_dict())
+    job_dict = job.to_dict()
+    job_id = job_dict['id']
+    del job_dict['id']
+    return CompletedJob(job_id, success, result, **job_dict)
 
 
 class LogCompletedJobBase(Task):

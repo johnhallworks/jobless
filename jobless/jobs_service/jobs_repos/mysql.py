@@ -3,7 +3,6 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import List
 
-from dateutil.parser import parse as date_parse
 from sqlalchemy import (Column,
                         Boolean,
                         Integer,
@@ -101,17 +100,25 @@ class MysqlJobsRepo(JobsRepo):
         return [_orm_to_job(job_orm) for job_orm in jobs_orm]
 
     def insert(self, session, job: Job) -> None:
+        self.adjust_time_to_process(job)
         job_orm = _job_to_orm(job)
         session.add(job_orm)
 
     def update(self, session, job: Job) -> None:
+        self.adjust_time_to_process(job)
         job_orm = session.query(JobOrm).filter(JobOrm.id == job.id).first()
+        if job_orm is None:
+            raise JobNotFoundException("Could not find job with id: {0}"
+                                       .format(job.id))
         updated_job_dict = _job_to_orm(job).to_dict()
         for prop, val in updated_job_dict.items():
             setattr(job_orm, prop, val)
 
     def delete(self, session, job_id: str) -> None:
         job_orm = session.query(JobOrm).filter(JobOrm.id == job_id).first()
+        if job_orm is None:
+            raise JobNotFoundException("Could not find job with id: {0}"
+                                       .format(job_id))
         session.delete(job_orm)
 
     @staticmethod

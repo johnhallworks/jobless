@@ -1,7 +1,5 @@
 version: "2"
 services:
-  cassandra:
-    image: cassandra
   redis:
     image: redis
   mysql:
@@ -11,16 +9,43 @@ services:
       - MYSQL_DATABASE=jobless
     ports:
       - "6785:3306"
-  web:
-    image: python:3.5-alpine
+  nginx:
+    image: chub/nginx
+    depends_on:
+      - jobs-api
+    ports:
+      - "9090:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+  scheduler:
+    image: chub/scheduler-base
     depends_on:
       - mysql
       - redis
+    volumes:
+      - .:/opt/jobless
+    command: /bin/ash -c "pip install -e /opt/jobless && python /opt/jobless/bin/create_tables.py && python /opt/jobless/bin/run_scheduler.py"
+  jobs-api:
+    image: chub/scheduler-base
+    depends_on:
+      - mysql
+      - scheduler
     ports:
       - "5453:5453"
     volumes:
       - .:/opt/jobless
-    command: /bin/ash -c "pip install -e /opt/jobless && flask run --host=0.0.0.0"
+    command: /bin/ash -c "pip install -e /opt/jobless && gunicorn jobless.web.app:app -b 0.0.0.0:5453"
     environment:
       - FLASK_APP=jobless.web.app
       - FLASK_DEBUG=1
+  worker:
+    image: chub/scheduler-base
+    depends_on:
+      - mysql
+      - redis
+      - scheduler
+    volumes:
+      - .:/opt/jobless
+    command: /bin/ash -c "pip install -e /opt/jobless && celery worker -A jobless.celery.worker --loglevel=info"
+    environment:
+      - C_FORCE_ROOT=true

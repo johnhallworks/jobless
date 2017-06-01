@@ -17,6 +17,8 @@ def test_completed_jobs_fixture(test_jobs):
     completed_jobs = []
     for job in test_jobs:
         job_dict = job.to_dict()
+        job_dict['job_id'] = job_dict['id']
+        del job_dict['id']
         job_dict['success'] = success
         job_dict['processed_time'] = datetime.now()
         job_dict['result'] = 'foobar'

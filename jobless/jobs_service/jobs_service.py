@@ -1,12 +1,17 @@
-from datetime import timedelta
+from datetime import (datetime,
+                      timedelta)
 
 from jobless.models.job import Job, Status
 from jobless.jobs_service.jobs_repos.base import JobsRepo
+from jobless.jobs_service.jobs_repos.exceptions import JobNotFoundException
 from jobless.jobs_service.locks.base import Lock
 
 
 class JobsService(object):
-    """A service to control the jobs repo and locking service."""
+    """A service to control the jobs repo and locking service.
+
+    Handles the business logic around the the jobs
+    """
     def __init__(self, jobs_repo: JobsRepo, lock_service: Lock, window=None):
         """Initializes dependencies and window."""
         if window is None:
@@ -19,10 +24,15 @@ class JobsService(object):
         """Returns a list of jobs to process."""
         with self.lock_service.lock_scope():
             with self.jobs_repo.session_scope() as session:
+                deleted_jobs = []
                 jobs = self.jobs_repo.get_window(session, self.window)
                 for job in jobs:
-                    self._set_dispatched(session, job)
-        return jobs
+                    try:
+                        self._set_dispatched(session, job)
+                    except JobNotFoundException:
+                        print("Job was deleted between getting the window and declaring it as DISPATCHED")
+                        deleted_jobs.append(job)
+        return [job for job in jobs if job not in deleted_jobs]
 
     def schedule(self, job: Job):
         """Schedules a new job."""
@@ -33,11 +43,14 @@ class JobsService(object):
         """Reschedules a job if it has a schedule."""
         new_job = Job(**job.to_dict())
         with self.jobs_repo.session_scope() as session:
-            if job.schedule:
-                self._apply_schedule(new_job)
-                self.jobs_repo.update(session, new_job)
-            else:
-                self.jobs_repo.delete(session, new_job.id)
+            try:
+                if job.schedule:
+                    self._apply_schedule(new_job)
+                    self.jobs_repo.update(session, new_job)
+                else:
+                    self.jobs_repo.delete(session, new_job.id)
+            except JobNotFoundException:
+                print("Job deleted while the job was dispatched.")
 
     def _set_dispatched(self, session, job: Job):
         """Updates a job status to DISPATCHED."""

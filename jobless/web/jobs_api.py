@@ -12,8 +12,6 @@ from jobless.jobs_service.jobs_repos.exceptions import JobNotFoundException
 
 
 jobs_blueprint = Blueprint('jobs', 'jobs')
-
-
 jobs_repo = load_jobs_repo()
 
 
@@ -23,7 +21,7 @@ def body_to_job(job_json):
         command=job_json['command'],
         schedule=job_json.get('schedule', None),
         status=Status.READY.value,
-        args=json.dumps(job_json.get('args', {})),
+        args=job_json.get('args', {}),
         on_success=job_json.get('on_success'),
         on_failure=job_json.get('on_failure')
     )
@@ -37,16 +35,13 @@ def create_job():
         job = body_to_job(job_json)
         with jobs_repo.session_scope() as session:
             jobs_repo.insert(session, job)
-        return Response(status=201)
+        return jsonify(job.to_dict())
     except Exception as ex:
         print(ex)
-        return jobs_blueprint.response_class(
-            response=json.dumps({
-                "error": str(ex)
-            }),
-            status=400,
-            mimetype='application/json'
-        )
+        response = json.dumps({"error": str(ex)})
+        status = 500
+        headers = {"content-type": "application/json"}
+        return response, status, headers
 
 
 @jobs_blueprint.route('/<job_id>', methods=['GET'])
@@ -57,13 +52,10 @@ def retrieve_job(job_id):
             if job:
                 return jsonify(job.to_dict())
     except JobNotFoundException as ex:
-        return jobs_blueprint.response_class(
-            response=json.dumps({
-                "error": str(ex)
-            }),
-            status=404,
-            mimetype='application/json'
-        )
+        response = json.dumps({"error": str(ex)})
+        status = 404
+        headers = {"content-type": "application/json"}
+        return response, status, headers
 
 
 @jobs_blueprint.route('', methods=['GET'])
@@ -80,13 +72,10 @@ def retrieve_jobs():
             jobs = [job.to_dict() for job in jobs]
             return jsonify(jobs)
     except Exception as ex:
-        return jobs_blueprint.response_class(
-            response=json.dumps({
-                "error": str(ex)
-            }),
-            status=400,
-            mimetype='application/json'
-        )
+        response = json.dumps({"error": str(ex)})
+        status = 400
+        headers = {"content-type": "application/json"}
+        return response, status, headers
 
 
 @jobs_blueprint.route('/<job_id>', methods=['PUT'])
@@ -98,9 +87,11 @@ def update_job(job_id):
         with jobs_repo.session_scope() as session:
             jobs_repo.update(session, job)
         return Response(status=204)
+    except JobNotFoundException:
+        return Response(status=404)
     except Exception as ex:
         print(ex)
-        return Response(status=400)
+        return Response(status=500)
 
 
 @jobs_blueprint.route('/<job_id>', methods=['DELETE'])
@@ -109,5 +100,8 @@ def delete_job(job_id):
         with jobs_repo.session_scope() as session:
             jobs_repo.delete(session, job_id)
         return Response(status=204)
-    except Exception:
-        return Response(status=400)
+    except JobNotFoundException:
+        return Response(status=404)
+    except Exception as ex:
+        print(ex)
+        return Response(status=500)

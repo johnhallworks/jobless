@@ -25,10 +25,10 @@ class Job(object):
             id = str(uuid4())
         self.id = id
 
+        # allow python or string datetime
         if type(time_to_process) == str:
             time_to_process = date_parse(time_to_process)
         self.time_to_process = time_to_process
-
         self.command = command
         self.args = args
         self.status = status
@@ -87,7 +87,7 @@ class Job(object):
             return False
 
         for attr in self.__dict__.keys():
-            if attr.startswith("_"):
+            if attr.startswith("_") or attr == 'time_to_process':
                 continue
 
             self_attr_value = getattr(self, attr)
@@ -121,18 +121,22 @@ class Job(object):
 
 
 class CompletedJob(Job):
-    def __init__(self, success: bool, result: str, processed_time: datetime,
-                 **kwargs):
+    def __init__(self, job_id: str, success: bool, result: str,
+                 processed_time: datetime=None, **kwargs):
         super().__init__(**kwargs)
+        self.job_id = job_id
         self.success = success
         self.result = result
         if type(processed_time) == str:
             processed_time = date_parse(processed_time)
+        if processed_time is None:
+            processed_time = datetime.now()
         self.processed_time = processed_time
 
     def to_dict(self):
         output = super().to_dict()
         output.update({
+            'job_id': self.job_id,
             'success': self.success,
             'result': self.result,
             'processed_time': str(self.processed_time)
