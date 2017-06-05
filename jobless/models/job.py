@@ -16,9 +16,8 @@ class Job(object):
     _on_failure = None
 
     def __init__(self,
-                 time_to_process: datetime, status: str,
-                 command: str, args: dict=None, schedule: dict=None,
-                 on_success=None, on_failure=None,
+                 time_to_process: datetime, command: str, status: str = Status.READY,
+                 args: dict=None, schedule: dict=None, on_success=None, on_failure=None,
                  id=None):
 
         if id is None:

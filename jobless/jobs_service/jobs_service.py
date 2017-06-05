@@ -59,6 +59,18 @@ class JobsService(object):
 
     @staticmethod
     def _apply_schedule(job: Job):
-        """Applies the timedelta from a job schedule."""
+        """Applies the timedelta from a job schedule and creates new on success jobs."""
         job.status = Status.READY.value
         job.time_to_process = job.time_to_process + timedelta(**job.schedule)
+
+        if job.on_success is not None:
+            job.on_success = JobsService._new_side_effect_job(job.on_success)
+        if job.on_failure is not None:
+            job.on_failure = JobsService._new_side_effect_job(job.on_failure)
+
+    @staticmethod
+    def _new_side_effect_job(job: Job)->Job:
+        """Rescheduled jobs must have new IDs for their side effect job."""
+        side_effect_job_dict = job.to_dict()
+        del side_effect_job_dict['id']
+        return Job(**side_effect_job_dict)
