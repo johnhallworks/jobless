@@ -1,4 +1,5 @@
 import json
+import traceback
 from datetime import timedelta
 
 from flask import (request,
@@ -82,16 +83,18 @@ def retrieve_jobs():
 def update_job(job_id):
     try:
         job_json = request.get_json(silent=True)
-        job = body_to_job(job_json)
-        job.id = job_id
         with jobs_repo.session_scope() as session:
+            job = jobs_repo.get_job(session, job_id)
+            job_dict = job.to_dict()
+            job_dict.update(job_json)
+            job = Job(**job_dict)
             jobs_repo.update(session, job)
         return Response(status=204)
     except JobNotFoundException:
         return Response(status=404)
     except Exception as ex:
-        print(ex)
-        return Response(status=500)
+        print(traceback.format_exc())
+        return '', 500
 
 
 @jobs_blueprint.route('/<job_id>', methods=['DELETE'])

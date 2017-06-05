@@ -71,7 +71,6 @@ class Scheduler:
                 [log_completed_job.s(),
                  handle_side_effects.s()]
             )
-
         ).apply_async()
 
         self.jobs_service.reschedule(job)

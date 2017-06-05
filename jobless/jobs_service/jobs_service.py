@@ -12,7 +12,7 @@ class JobsService(object):
 
     Handles the business logic around the the jobs
     """
-    def __init__(self, jobs_repo: JobsRepo, lock_service: Lock, window=None):
+    def __init__(self, jobs_repo: JobsRepo, lock_service: Lock, window: timedelta=None):
         """Initializes dependencies and window."""
         if window is None:
             window = timedelta(minutes=1)
@@ -41,14 +41,14 @@ class JobsService(object):
 
     def reschedule(self, job: Job):
         """Reschedules a job if it has a schedule."""
-        new_job = Job(**job.to_dict())
         with self.jobs_repo.session_scope() as session:
             try:
                 if job.schedule:
-                    self._apply_schedule(new_job)
-                    self.jobs_repo.update(session, new_job)
+                    job = self.jobs_repo.get_job(session, job.id)
+                    self._apply_schedule(job)
+                    self.jobs_repo.update(session, job)
                 else:
-                    self.jobs_repo.delete(session, new_job.id)
+                    self.jobs_repo.delete(session, job.id)
             except JobNotFoundException:
                 print("Job deleted while the job was dispatched.")
 

@@ -5,3 +5,4 @@ class Config:
     broker_url = 'redis://redis:6379/0'
     results_url = 'redis://redis:6379/1'
     max_fetch_size = 3
+    scheduler_window = {"seconds": 10}

@@ -24,4 +24,4 @@ def load_completed_jobs_log() -> JobsLog:
 
 def load_jobs_service() -> JobsService:
     return JobsService(jobs_repo=load_jobs_repo(), lock_service=load_lock_service(),
-                       window=timedelta(seconds=10))
+                       window=timedelta(**Config.scheduler_window))
