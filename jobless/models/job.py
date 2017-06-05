@@ -50,14 +50,12 @@ class Job(object):
 
     @on_success.setter
     def on_success(self, on_success):
-        if on_success is not None:
-            if type(on_success) == Job:
-                self._on_success = on_success
-            elif type(on_success) == dict:
-                self._on_success = Job(**on_success)
-            else:
-                raise ValueError("on_success must be of type Job not: {0}"
-                                 .format(type(on_success)))
+        if type(on_success) == dict:
+            on_success = Job(**on_success)
+        elif not (type(on_success) == Job or on_success is None):
+            raise ValueError("on_success must be of type Job not: {0}"
+                             .format(type(on_success)))
+        self._on_success = on_success
 
     @property
     def on_failure(self):
@@ -66,14 +64,12 @@ class Job(object):
 
     @on_failure.setter
     def on_failure(self, on_failure):
-        if on_failure is not None:
-            if type(on_failure) == Job:
-                self._on_failure = on_failure
-            elif type(on_failure) == dict:
-                self._on_failure = Job(**on_failure)
-            else:
-                raise ValueError("on_failure must be of type Job not: {0}"
-                                 .format(type(on_failure)))
+        if type(on_failure) == dict:
+            on_failure = Job(**on_failure)
+        elif not (type(on_failure) == Job or on_failure is None):
+            raise ValueError("on_success must be of type Job not: {0}"
+                             .format(type(on_failure)))
+        self._on_failure = on_failure
 
     def __repr__(self):
         return str(self.to_dict())

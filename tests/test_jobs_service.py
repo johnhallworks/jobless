@@ -46,11 +46,18 @@ def test_reschedule_reoccurring_jobs(jobs_service_with_jobs, test_jobs):
     for job in test_jobs:
         assert job.schedule
         job.status = Status.DISPATCHED.value
+        job.on_success = None  # not testing side effect jobs in this fn
+        job.on_failure = None
         jobs_service_with_jobs.reschedule(job)
 
     updated_jobs = jobs_service_with_jobs.fetch_jobs()
+    for job in updated_jobs:
+        job.on_success = None  # not testing side effect jobs in this fn
+        job.on_failure = None
     assert len(updated_jobs) == len(test_jobs)
     for job in test_jobs:
+        print(job)
+        print(test_jobs)
         job.time_to_process = job.time_to_process + timedelta(**job.schedule)
         job.status = Status.DISPATCHED.value
         assert job in updated_jobs
